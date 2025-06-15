@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Image, View, Text, TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
+import { StyleSheet, Image, View, Text, TouchableOpacity, TouchableWithoutFeedback, Platform, KeyboardAvoidingView } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -7,10 +7,12 @@ import Animated, {
 } from 'react-native-reanimated';
 import OverlayItem, { Overlay, OverlayAction } from '../OverlayItem';
 import * as ImagePicker from 'react-native-image-picker';
+import StyleModal from '../StyleModal';
 
 export const MemeCanvas: React.FC<{ imageUri?: string }> = ({ imageUri }) => {
   const [overlays, setOverlays] = useState<Overlay[]>([]);
   const [selectedOverlay, setSelectedOverlay] = useState<Overlay | null>(null);
+  const [isStyleModalVisible, setIsStyleModalVisible] = useState<boolean>(false);
 
   const addTextOverlay = () => {
     const newOverlay: Overlay = {
@@ -19,8 +21,6 @@ export const MemeCanvas: React.FC<{ imageUri?: string }> = ({ imageUri }) => {
       content: 'Tap to edit',
       x: 20,
       y: 50,
-      width: 150,
-      height: 50,
     };
     setOverlays([...overlays, newOverlay]);
     setSelectedOverlay(newOverlay);
@@ -113,8 +113,6 @@ export const MemeCanvas: React.FC<{ imageUri?: string }> = ({ imageUri }) => {
           content: result.assets[0].uri,
           x: 20,
           y: 50,
-          width: 150,
-          height: 150,
         };
         setOverlays([...overlays, newOverlay]);
         setSelectedOverlay(newOverlay);
@@ -124,9 +122,11 @@ export const MemeCanvas: React.FC<{ imageUri?: string }> = ({ imageUri }) => {
     }
   };
 
-  // Add button to footer
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
       <GestureDetector gesture={composed}>
         <TouchableWithoutFeedback onPress={handleBackgroundPress}>
           <Animated.View
@@ -151,7 +151,10 @@ export const MemeCanvas: React.FC<{ imageUri?: string }> = ({ imageUri }) => {
       </GestureDetector>
       <View style={styles.footer}>
         {(selectedOverlay !== null) && (
-          <TouchableOpacity style={styles.btn} onPress={() => { }}>
+          <TouchableOpacity
+            style={styles.btn}
+            onPress={() => setIsStyleModalVisible(true)}
+          >
             <Text style={styles.buttonText}>Style</Text>
           </TouchableOpacity>
         )}
@@ -161,11 +164,14 @@ export const MemeCanvas: React.FC<{ imageUri?: string }> = ({ imageUri }) => {
         <TouchableOpacity style={styles.btn} onPress={addImageOverlay}>
           <Text style={styles.buttonText}>Add Image</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.btn} onPress={() => { }}>
-          <Text style={styles.buttonText}>Export JPG</Text>
-        </TouchableOpacity>
       </View>
-    </View>
+      <StyleModal
+        visible={isStyleModalVisible}
+        onClose={() => setIsStyleModalVisible(false)}
+        overlay={selectedOverlay}
+        onUpdate={updateOverlay}
+      />
+    </KeyboardAvoidingView>
   );
 };
 
@@ -188,10 +194,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     paddingHorizontal: 12,
     paddingBottom: 50,
     paddingTop: 30,

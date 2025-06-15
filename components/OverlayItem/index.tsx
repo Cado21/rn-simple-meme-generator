@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, TextInput, Image } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, TextInput, Image, TextStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -8,17 +8,29 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 
-export interface Overlay {
+export type FontStyleType = 'normal' | 'italic' | 'bold';
+export type OverlayAction = 'delete' | 'duplicate';
+export interface OverlayBase {
   id: string;
-  type: 'text' | 'image';
-  content: string;
   x: number;
   y: number;
-  width: number;
-  height: number;
+}
+export interface TextOverlay extends OverlayBase {
+  type: 'text';
+  content: string;
+  textColor?: string;
+  fontSize?: number;
+  fontStyle?: FontStyleType;
 }
 
-export type OverlayAction = 'delete' | 'duplicate';
+export interface ImageOverlay extends OverlayBase {
+  type: 'image';
+  content: string;
+  opacity?: number;
+}
+
+export type Overlay = TextOverlay | ImageOverlay;
+
 
 interface OverlayItemPropsI {
   overlay: Overlay;
@@ -60,8 +72,6 @@ const OverlayItem: React.FC<OverlayItemPropsI> = ({
       { translateX: translateX.value },
       { translateY: translateY.value },
     ],
-    width: overlay.width,
-    height: overlay.height,
     position: 'absolute',
   }));
 
@@ -75,7 +85,15 @@ const OverlayItem: React.FC<OverlayItemPropsI> = ({
     onUpdate(overlay.id, { content: newText });
   };
 
+  const getTextOverlayStyle = (textOverlay: TextOverlay): TextStyle => ({
+    color: textOverlay.textColor || '#000000',
+    fontSize: textOverlay.fontSize || 20,
+    fontStyle: textOverlay.fontStyle !== 'bold' ? textOverlay.fontStyle : 'normal',
+    fontWeight: textOverlay.fontStyle === 'bold' ? 'bold' : 'normal',
+  });
+
   return (
+
     <GestureDetector gesture={panGesture}>
       <Animated.View style={[styles.overlayContainer, animatedStyle]}>
         <TouchableOpacity
@@ -85,7 +103,7 @@ const OverlayItem: React.FC<OverlayItemPropsI> = ({
               setIsEditing(true);
             }
           }}
-          style={[styles.textContainer, isSelected && styles.selectedText]}
+          style={[styles.itemContainer, isSelected && styles.selected]}
           activeOpacity={0.8}
         >
           <View style={styles.contentWrapper}>
@@ -95,22 +113,19 @@ const OverlayItem: React.FC<OverlayItemPropsI> = ({
                   value={overlay.content}
                   onChangeText={handleTextChange}
                   onBlur={() => setIsEditing(false)}
-                  style={styles.textInput}
+                  style={[styles.textInput, getTextOverlayStyle(overlay)]}
                   autoFocus
                   multiline
                 />
               ) : (
-                <Text style={styles.textInput}>{overlay.content}</Text>
+                <Text style={[getTextOverlayStyle(overlay)]}>{overlay.content}</Text>
               )
             ) : (
               <Image
                 source={{ uri: overlay.content }}
-                // eslint-disable-next-line react-native/no-inline-styles
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  resizeMode: 'contain',
-                }}
+                style={[styles.image, {
+                  opacity: overlay.opacity || 1,
+                }]}
               />
             )}
           </View>
@@ -155,20 +170,22 @@ const styles = StyleSheet.create({
   overlayContainer: {
     position: 'relative',
   },
-  textContainer: {
+  itemContainer: {
     minWidth: 100,
     minHeight: 50,
   },
   contentWrapper: {
     flexShrink: 1,
+    flexGrow: 1,
   },
   textInput: {
     fontSize: 20,
     padding: 10,
     borderRadius: 5,
     minWidth: 100,
+    flexWrap: 'wrap',
   },
-  selectedText: {
+  selected: {
     borderWidth: 1,
     borderColor: '#007AFF',
     borderStyle: 'dashed',
@@ -207,6 +224,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 5,
   },
+  image: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
+  }
 });
 
 export default OverlayItem;
