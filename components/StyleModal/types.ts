@@ -1,5 +1,5 @@
 import { STYLE_MODAL_CONSTANTS } from '../../helpers/constants';
-import { Overlay } from '../OverlayItem';
+import { Overlay } from '../OverlayItem/types';
 
 export interface StyleModalProps {
   visible: boolean;

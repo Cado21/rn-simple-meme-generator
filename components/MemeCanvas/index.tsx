@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Image, View, Text, TouchableOpacity, TouchableWithoutFeedback, Platform, KeyboardAvoidingView, LayoutChangeEvent } from 'react-native';
+import {  Image, View, Text, TouchableOpacity, TouchableWithoutFeedback, Platform, KeyboardAvoidingView, LayoutChangeEvent } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -9,8 +9,9 @@ import OverlayItem from '../OverlayItem';
 import * as ImagePicker from 'react-native-image-picker';
 import StyleModal from '../StyleModal';
 import { Overlay, OverlayAction } from '../OverlayItem/types';
+import styles from './styles';
 
-export const MemeCanvas: React.FC<{ imageUri?: string }> = ({ imageUri }) => {
+const MemeCanvas: React.FC<{ imageUri?: string }> = ({ imageUri }) => {
   const [overlays, setOverlays] = useState<Overlay[]>([]);
   const [selectedOverlay, setSelectedOverlay] = useState<Overlay | null>(null);
   const [isStyleModalVisible, setIsStyleModalVisible] = useState<boolean>(false);
@@ -184,44 +185,4 @@ export const MemeCanvas: React.FC<{ imageUri?: string }> = ({ imageUri }) => {
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  blankCanvas: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'white',
-  },
-  canvasContainer: {
-    flex: 1,
-    padding: 20,
-  },
-  footer: {
-    paddingHorizontal: 12,
-    paddingBottom: 50,
-    paddingTop: 30,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  btn: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+export default MemeCanvas;
