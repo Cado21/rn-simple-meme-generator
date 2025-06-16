@@ -18,10 +18,6 @@ export default function EditorScreen({ route, navigation }: EditorScreenProps) {
         >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Edit Meme</Text>
-        <TouchableOpacity style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={styles.canvasContainer}>
@@ -43,11 +39,6 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#1E1E1E',
   },
-  title: {
-    fontSize: 20,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
   backButton: {
     padding: 8,
   },
@@ -55,33 +46,8 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 24,
   },
-  saveButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
   canvasContainer: {
     flex: 1,
     overflow: 'hidden',
-  },
-  toolbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: 16,
-    backgroundColor: '#1E1E1E',
-  },
-  toolButton: {
-    backgroundColor: '#2D2D2D',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  toolButtonText: {
-    color: '#FFFFFF',
   },
 });

@@ -4,33 +4,10 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  SharedValue,
   runOnJS,
+  SharedValue,
 } from 'react-native-reanimated';
-
-export type FontStyleType = 'normal' | 'italic' | 'bold';
-export type OverlayAction = 'delete' | 'duplicate';
-export interface OverlayBase {
-  id: string;
-  x: number;
-  y: number;
-}
-export interface TextOverlay extends OverlayBase {
-  type: 'text';
-  content: string;
-  textColor?: string;
-  fontSize?: number;
-  fontStyle?: FontStyleType;
-}
-
-export interface ImageOverlay extends OverlayBase {
-  type: 'image';
-  content: string;
-  opacity?: number;
-}
-
-export type Overlay = TextOverlay | ImageOverlay;
-
+import { Overlay, OverlayAction, TextOverlay } from './types';
 
 interface OverlayItemPropsI {
   overlay: Overlay;
@@ -38,6 +15,7 @@ interface OverlayItemPropsI {
   onSelect: (id: string) => void;
   onUpdate: (id: string, updates: Partial<Overlay>, action?: OverlayAction) => void;
   scale: SharedValue<number>;
+  canvasLayout: { width: number; height: number };
 }
 
 const OverlayItem: React.FC<OverlayItemPropsI> = ({
@@ -46,40 +24,15 @@ const OverlayItem: React.FC<OverlayItemPropsI> = ({
   onSelect,
   onUpdate,
   scale,
+  canvasLayout,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
 
   const translateX = useSharedValue(overlay.x);
   const translateY = useSharedValue(overlay.y);
 
-  const panGesture = Gesture.Pan()
-    .enabled(isSelected)
-    .onStart(() => {
-    })
-    .onUpdate((event) => {
-      translateX.value = overlay.x + event.translationX / scale.value;
-      translateY.value = overlay.y + event.translationY / scale.value;
-    })
-    .onEnd(() => {
-      runOnJS(onUpdate)(overlay.id, {
-        x: translateX.value,
-        y: translateY.value,
-      });
-    });
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-    ],
-    position: 'absolute',
-  }));
-
-  useEffect(() => {
-    if (!isSelected) {
-      setIsEditing(false);
-    }
-  }, [isSelected]);
+  const startWidth = useSharedValue(0);
+  const startHeight = useSharedValue(0);
 
   const handleTextChange = (newText: string) => {
     onUpdate(overlay.id, { content: newText });
@@ -92,14 +45,100 @@ const OverlayItem: React.FC<OverlayItemPropsI> = ({
     fontWeight: textOverlay.fontStyle === 'bold' ? 'bold' : 'normal',
   });
 
-  return (
+  const panGesture = Gesture.Pan()
+    .enabled(isSelected)
+    .onStart(() => {
+      translateX.value = overlay.x;
+      translateY.value = overlay.y;
+    })
+    .onUpdate((event) => {
+      // Get parent container dimensions from layout
+      const containerWidth = canvasLayout.width - (overlay.type === 'image' ? (overlay.width || 150) : 0);
+      const containerHeight = canvasLayout.height - (overlay.type === 'image' ? (overlay.height || 150) : 0);
 
-    <GestureDetector gesture={panGesture}>
+      // Calculate new position with boundaries
+      const newX = Math.min(Math.max(0, overlay.x + event.translationX / scale.value), containerWidth);
+      const newY = Math.min(Math.max(0, overlay.y + event.translationY / scale.value), containerHeight);
+
+      translateX.value = newX;
+      translateY.value = newY;
+    })
+    .onEnd(() => {
+      runOnJS(onUpdate)(overlay.id, {
+        x: translateX.value,
+        y: translateY.value,
+      });
+    });
+  const resizeGesture = Gesture.Pan()
+    .enabled(isSelected && overlay.type === 'image')
+    .onStart(() => {
+      if (overlay.type === 'image') {
+        startWidth.value = overlay.width || 150;
+        startHeight.value = overlay.height || 150;
+      }
+    })
+    .onUpdate((event) => {
+      if (overlay.type === 'image') {
+        const currentWidth = startWidth.value;
+        const currentHeight = startHeight.value;
+        const aspectRatio = currentWidth / currentHeight;
+
+        // Calculate available space
+        const maxWidth = canvasLayout.width - overlay.x;
+        const maxHeight = canvasLayout.height - overlay.y;
+
+        // Calculate new dimensions while maintaining aspect ratio
+        let newWidth = currentWidth + event.translationX / scale.value;
+        let newHeight = newWidth / aspectRatio;
+
+        // Ensure dimensions stay within bounds
+        if (newWidth > maxWidth) {
+          newWidth = maxWidth;
+          newHeight = newWidth / aspectRatio;
+        }
+        if (newHeight > maxHeight) {
+          newHeight = maxHeight;
+          newWidth = newHeight * aspectRatio;
+        }
+
+        // Enforce minimum size while maintaining aspect ratio
+        const minSize = 50;
+        if (newWidth < minSize) {
+          newWidth = minSize;
+          newHeight = newWidth / aspectRatio;
+        }
+        if (newHeight < minSize) {
+          newHeight = minSize;
+          newWidth = newHeight * aspectRatio;
+        }
+
+        runOnJS(onUpdate)(overlay.id, {
+          width: newWidth,
+          height: newHeight,
+        });
+      }
+    });
+
+  const composed = Gesture.Simultaneous(panGesture);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+    ],
+    position: 'absolute',
+  }));
+  useEffect(() => {
+    if (!isSelected) {
+      setIsEditing(false);
+    }
+  }, [isSelected]);
+  return (
+    <GestureDetector gesture={composed}>
       <Animated.View style={[styles.overlayContainer, animatedStyle]}>
         <TouchableOpacity
           onPress={() => {
             onSelect(overlay.id);
-            if (isSelected) {
+            if (isSelected && overlay.type === 'text') {
               setIsEditing(true);
             }
           }}
@@ -121,12 +160,21 @@ const OverlayItem: React.FC<OverlayItemPropsI> = ({
                 <Text style={[getTextOverlayStyle(overlay)]}>{overlay.content}</Text>
               )
             ) : (
-              <Image
-                source={{ uri: overlay.content }}
-                style={[styles.image, {
-                  opacity: overlay.opacity || 1,
-                }]}
-              />
+              <>
+                <Image
+                  source={{ uri: overlay.content }}
+                  style={[styles.image, {
+                    opacity: overlay.opacity || 1,
+                    width: overlay.width || 150,
+                    height: overlay.height || 150,
+                  }]}
+                />
+                {isSelected && (
+                  <GestureDetector gesture={resizeGesture}>
+                    <View style={[styles.resizeHandle, styles.bottomRightHandle]} />
+                  </GestureDetector>
+                )}
+              </>
             )}
           </View>
         </TouchableOpacity>
@@ -165,7 +213,6 @@ const OverlayItem: React.FC<OverlayItemPropsI> = ({
   );
 };
 
-// Add to styles
 const styles = StyleSheet.create({
   overlayContainer: {
     position: 'relative',
@@ -177,6 +224,8 @@ const styles = StyleSheet.create({
   contentWrapper: {
     flexShrink: 1,
     flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   textInput: {
     fontSize: 20,
@@ -228,7 +277,32 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'contain',
-  }
+  },
+  resizeHandle: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#000',
+  },
+  topLeftHandle: {
+    top: -10,
+    left: -10,
+  },
+  topRightHandle: {
+    top: -10,
+    right: -10,
+  },
+  bottomLeftHandle: {
+    bottom: -10,
+    left: -10,
+  },
+  bottomRightHandle: {
+    bottom: -10,
+    right: -10,
+  },
 });
 
 export default OverlayItem;

@@ -1,19 +1,27 @@
 import React, { useState } from 'react';
-import { StyleSheet, Image, View, Text, TouchableOpacity, TouchableWithoutFeedback, Platform, KeyboardAvoidingView } from 'react-native';
+import { StyleSheet, Image, View, Text, TouchableOpacity, TouchableWithoutFeedback, Platform, KeyboardAvoidingView, LayoutChangeEvent } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated';
-import OverlayItem, { Overlay, OverlayAction } from '../OverlayItem';
+import OverlayItem from '../OverlayItem';
 import * as ImagePicker from 'react-native-image-picker';
 import StyleModal from '../StyleModal';
+import { Overlay, OverlayAction } from '../OverlayItem/types';
 
 export const MemeCanvas: React.FC<{ imageUri?: string }> = ({ imageUri }) => {
   const [overlays, setOverlays] = useState<Overlay[]>([]);
   const [selectedOverlay, setSelectedOverlay] = useState<Overlay | null>(null);
   const [isStyleModalVisible, setIsStyleModalVisible] = useState<boolean>(false);
-
+  const [canvasLayout, setCanvasLayout] = useState({ width: 0, height: 0 });
+  const updateCanvasLayout = (event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    setCanvasLayout({
+      width,
+      height,
+    });
+  };
   const addTextOverlay = () => {
     const newOverlay: Overlay = {
       id: Date.now().toString(),
@@ -130,6 +138,7 @@ export const MemeCanvas: React.FC<{ imageUri?: string }> = ({ imageUri }) => {
       <GestureDetector gesture={composed}>
         <TouchableWithoutFeedback onPress={handleBackgroundPress}>
           <Animated.View
+            onLayout={updateCanvasLayout}
             style={[styles.canvasContainer, animatedStyle]}>
             {imageUri ? (
               <Image source={{ uri: imageUri }} style={styles.image} resizeMode="contain" />
@@ -144,6 +153,7 @@ export const MemeCanvas: React.FC<{ imageUri?: string }> = ({ imageUri }) => {
                 onSelect={(id: string) => setSelectedOverlay(overlays.find(o => o.id === id) || null)}
                 onUpdate={updateOverlay}
                 scale={scale}
+                canvasLayout={canvasLayout}
               />
             ))}
           </Animated.View>
