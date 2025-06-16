@@ -16,7 +16,7 @@ export default function EditorScreen({ route, navigation }: EditorScreenProps) {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <Text style={styles.backButtonText}>◀️</Text>
         </TouchableOpacity>
       </View>
 
